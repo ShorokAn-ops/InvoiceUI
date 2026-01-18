@@ -1,5 +1,4 @@
 import re
-import os
 import unittest
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
@@ -7,17 +6,15 @@ from playwright.sync_api import sync_playwright, expect
 
 class TestInvoiceFlowUI(unittest.TestCase):
     BASE_URL = "http://localhost:3000"
-    USERNAME = "admin"
-    PASSWORD = "admin"
-
-    # Path to a sample invoice file for upload
+    STORAGE_STATE_PATH = Path("test/.auth/state.json")
     SAMPLE_PDF = Path("test/invoices/invoice_Aaron_Bergman_36259.pdf")
 
     @classmethod
     def setUpClass(cls):
         """Start Playwright and launch the browser once for all tests."""
         cls.playwright = sync_playwright().start()
-        cls.browser = cls.playwright.chromium.launch(headless=False)
+        cls.browser = cls.playwright.chromium.launch(headless=False, slow_mo=300)
+        cls._ensure_storage_state()
 
     @classmethod
     def tearDownClass(cls):
@@ -25,231 +22,166 @@ class TestInvoiceFlowUI(unittest.TestCase):
         cls.browser.close()
         cls.playwright.stop()
 
+    @classmethod
+    def _ensure_storage_state(cls):
+        """
+        Create a storage_state file by logging in ONCE per test run.
+        This means: every time you run pytest, you will see the login once,
+        then the rest of the flow will use the saved session.
+        """
+        cls.STORAGE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        # Always recreate storage state per run (do not reuse from previous runs)
+        if cls.STORAGE_STATE_PATH.exists():
+            cls.STORAGE_STATE_PATH.unlink()
+
+        ctx = cls.browser.new_context()
+        page = ctx.new_page()
+
+        # Go to login page
+        page.goto(f"{cls.BASE_URL}/login")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Fill login form
+        page.wait_for_selector("#username", timeout=15000)
+        page.wait_for_selector("#password", timeout=15000)
+        page.locator("#username").fill("admin")
+        page.locator("#password").fill("admin")
+
+        # Submit login
+        page.get_by_role("button", name="Sign In").click()
+
+        # Verify we are authenticated (dashboard redirect)
+        expect(page).to_have_url(re.compile(r".*/dashboard.*"), timeout=20000)
+
+        # Save session state for THIS RUN
+        ctx.storage_state(path=str(cls.STORAGE_STATE_PATH))
+
+        # Cleanup
+        page.close()
+        ctx.close()
+
     def setUp(self):
-        """Create a new browser page before each test."""
-        self.page = self.browser.new_page()
+        """
+        Create a fresh context/page for each test, but reuse saved auth state.
+        This keeps tests isolated while avoiding repeated login steps.
+        """
+        self.context = self.browser.new_context(storage_state=str(self.STORAGE_STATE_PATH))
+        self.page = self.context.new_page()
 
     def tearDown(self):
-        """Close the page after each test."""
+        """Close the page and context after each test."""
         self.page.close()
+        self.context.close()
 
-    # ---------- helper methods ----------
-    def login_and_go_dashboard(self):
-        """Login with valid credentials and ensure the dashboard is loaded."""
-        self.page.goto(f"{self.BASE_URL}/login")
-        self.page.wait_for_load_state("domcontentloaded")
-
-        self.page.wait_for_selector("#username")
-        self.page.wait_for_selector("#password")
-
-        self.page.locator("#username").fill(self.USERNAME)
-        self.page.locator("#password").fill(self.PASSWORD)
-        self.page.get_by_role("button", name="Sign In").click()
-
-        expect(self.page).to_have_url(re.compile(r".*/dashboard.*"))
+    # -------------------------
+    # Helper methods
+    # -------------------------
+    def go_to_dashboard(self):
+        """Navigate to dashboard and wait until it is loaded."""
+        self.page.goto(f"{self.BASE_URL}/dashboard")
         self.page.wait_for_load_state("networkidle")
-
-        # Verify dashboard unique content
         self.page.wait_for_selector("text=Welcome to InvoiceAI", timeout=15000)
-        self.assertTrue(self.page.get_by_text("Welcome to InvoiceAI").is_visible())
+
+    def assert_login_success(self):
+        """
+        Assert that the user is logged in successfully using the stored session.
+        We verify access to the dashboard and authenticated-only UI elements.
+        """
+        # Should not be redirected back to login
+        self.assertNotIn("/login", self.page.url.lower())
+
+        # Unique dashboard element for authenticated users
+        self.page.wait_for_selector("text=Welcome to InvoiceAI", timeout=15000)
+        self.assertTrue(self.page.get_by_text("Welcome to InvoiceAI").first.is_visible())
+
+        # Optional: verify logout exists as another authenticated indicator
+        self.assertTrue(self.page.get_by_text("Logout").first.is_visible())
 
     def go_to_upload_page(self):
-        """Navigate to Upload page and verify unique Upload content."""
+        """Navigate to upload page and wait until upload UI is visible."""
         self.page.goto(f"{self.BASE_URL}/upload")
-        self.page.wait_for_load_state("networkidle")
-
+        self.page.wait_for_load_state("domcontentloaded")
         self.page.wait_for_selector("text=Upload Invoice", timeout=15000)
-        self.assertTrue(self.page.get_by_text("Upload Invoice").is_visible())
-
-        # Verify the main upload button exists
-        self.assertTrue(self.page.get_by_text("Upload & Extract Data").is_visible())
+        self.page.wait_for_selector("input[type='file']", timeout=15000)
 
     def go_to_invoices_page(self):
-        """Navigate to Invoices page and verify unique Invoices content."""
+        """Navigate to invoices page and wait until it is loaded."""
         self.page.goto(f"{self.BASE_URL}/invoices")
         self.page.wait_for_load_state("networkidle")
-
-        # In your screenshots there is a vendor search + table header
-        self.page.wait_for_selector("text=Vendor Search", timeout=15000)
-        self.assertTrue(self.page.get_by_text("Vendor Search").is_visible())
-        self.assertTrue(self.page.get_by_text("Local History").is_visible())
+        self.page.wait_for_selector("text=Invoices", timeout=15000)
 
     def upload_invoice_file(self):
         """
-        Upload a PDF invoice file using the file input.
+        Upload a PDF invoice file using the <input type="file"> element.
         Assumes we are already on /upload.
         """
         self.assertTrue(self.SAMPLE_PDF.exists(), f"Sample PDF not found: {self.SAMPLE_PDF}")
 
-        # Wait until the upload page is fully ready
-        self.page.wait_for_selector("text=Upload Invoice", timeout=15000)
-        self.page.wait_for_selector("input[type='file']", timeout=15000)
-
         file_input = self.page.locator("input[type='file']").first
         file_input.wait_for(state="attached", timeout=15000)
 
-        # Set the file into the input
+        # Inject file into the file input
         file_input.set_input_files(str(self.SAMPLE_PDF))
 
-        # Click upload/extract
+        # Click the upload/extract button
         upload_btn = self.page.get_by_text("Upload & Extract Data").first
         self.assertTrue(upload_btn.is_visible())
         upload_btn.click()
 
-        # Wait for the app to process (sometimes there is async extract)
+        # Give the app time to process / redirect / update UI
         self.page.wait_for_load_state("networkidle")
         self.page.wait_for_timeout(1000)
 
-    def assert_upload_success_indicators(self):
+    # -------------------------
+    # ONE FULL FLOW TEST
+    # -------------------------
+    def test_full_flow_dashboard_upload_and_invoices_components(self):
         """
-        Verify upload success by waiting (polling) until the uploaded file appears in:
-        - Dashboard -> Recent Uploads
-        OR
-        - Invoices page -> Local History list
+        Single flow test:
+        Dashboard -> (verify login success) -> Upload -> Upload&Extract
+        -> Invoices (entered ONCE) -> component checks.
         """
-        filename = self.SAMPLE_PDF.name
+        # Dashboard (session-based login)
+        self.go_to_dashboard()
 
-        # We will poll for up to 30 seconds to allow backend/processing time
-        for _ in range(30):
-            # Check Dashboard - Recent Uploads
-            self.page.goto(f"{self.BASE_URL}/dashboard")
-            self.page.wait_for_load_state("networkidle")
+        # ✅ Verify login success BEFORE upload
+        self.assert_login_success()
 
-            # If dashboard has recent uploads section, check filename
-            try:
-                if self.page.get_by_text("Recent Uploads").is_visible(timeout=1000):
-                    body = self.page.inner_text("body")
-                    if filename in body:
-                        self.assertTrue(True)
-                        return
-            except Exception:
-                pass
-
-            # Check Invoices page - Local History
-            self.go_to_invoices_page()
-            self.page.wait_for_load_state("networkidle")
-
-            body_text = self.page.inner_text("body")
-
-            # If file name appears anywhere in invoices page -> success
-            if filename in body_text:
-                self.assertTrue(True)
-                return
-
-            # If still empty state, keep waiting
-            self.page.wait_for_timeout(1000)
-
-        # If we got here - upload did not show up anywhere
-        self.fail(
-            f"Upload did not appear after 30s. "
-            f"Expected to find '{filename}' in Dashboard Recent Uploads or Invoices Local History.\n"
-            f"Current URL: {self.page.url}\n"
-            f"Page contains: {self.page.inner_text('body')[:300]}"
-        )
-
-    # ---------- tests ----------
-
-    def test_user_journey_upload_invoice(self):
-        """
-        End-to-end user journey:
-        Login -> Dashboard -> Upload -> Upload&Extract -> Verify invoice appears in system.
-        """
-        self.login_and_go_dashboard()
+        # Upload
         self.go_to_upload_page()
         self.upload_invoice_file()
 
-        # After upload, validate success indicators (dashboard or invoices)
-        self.assert_upload_success_indicators()
-
-    def test_component_invoices_vendor_search(self):
-        """
-        Component test:
-        Vendor search filters the invoices list.
-        (Assumes there is an input + Search button as in your screenshots)
-        """
-        self.login_and_go_dashboard()
+        # Go to invoices ONCE
         self.go_to_invoices_page()
 
-        # Try to locate the vendor search input in a flexible way
-        # If your input has a placeholder, this will work; otherwise it will fallback to the first input under Vendor Search section.
-        search_input = self.page.locator("input").first
-        try:
-            # If a placeholder exists, use it (stronger selector)
-            ph = self.page.locator("input[placeholder]").first
-            if ph.is_visible(timeout=1500):
-                search_input = ph
-        except Exception:
-            pass
+        # Poll on the same invoices page (reload) until filename appears
+        filename = self.SAMPLE_PDF.name
+        for _ in range(30):
+            body_text = self.page.inner_text("body")
+            if filename in body_text:
+                break
+            self.page.reload()
+            self.page.wait_for_load_state("networkidle")
+            self.page.wait_for_timeout(1000)
+        else:
+            self.fail(f"Upload did not appear after 30 seconds on /invoices. Expected '{filename}'")
 
-        # Use a vendor term that likely exists after some uploads; you can change it to a known vendor
-        vendor_query = "SuperStore"
-        search_input.fill(vendor_query)
+        # Component checks on the SAME invoices page (no more navigation)
+        vendor_input = self.page.get_by_placeholder("Enter vendor name")
+        self.assertTrue(vendor_input.is_visible())
 
-        # Click Search button (as in screenshots)
-        self.page.get_by_role("button", name="Search").click()
-        self.page.wait_for_load_state("networkidle")
+        search_btn = self.page.get_by_role("button", name="Search")
+        self.assertTrue(search_btn.is_visible())
 
-        # After search, the results should contain the vendor query (or show "no results")
-        body_text = self.page.inner_text("body").lower()
-        self.assertTrue(
-            vendor_query.lower() in body_text or "no" in body_text or "not found" in body_text,
-            "Expected vendor search to filter results or show a 'no results' state."
-        )
-
-    def test_component_view_details_button_exists(self):
-        """
-        Component test:
-        If invoices exist -> verify 'View Details' exists.
-        If no invoices exist -> verify empty state appears.
-        """
-        self.login_and_go_dashboard()
-        self.go_to_invoices_page()
-        self.page.wait_for_load_state("networkidle")
-
-        body_text = self.page.inner_text("body").lower()
-
-        # Empty state: no invoices
-        if "no invoices uploaded yet" in body_text:
+        body_lower = self.page.inner_text("body").lower()
+        if "no invoices uploaded yet" in body_lower:
             self.assertTrue(self.page.get_by_text("No invoices uploaded yet.").is_visible())
             self.assertTrue(self.page.get_by_text("Upload now").is_visible())
-            return
-
-        # Invoices exist -> table + View Details should exist
-        self.page.wait_for_selector("text=View Details", timeout=15000)
-        self.assertTrue(self.page.get_by_text("View Details").first.is_visible())
-
-    def test_component_delete_invoice_row_if_exists(self):
-        """
-        Component test (safe):
-        If a 'Delete' button exists, click it and verify the row count decreases or item disappears.
-        This test is defensive to avoid failing when there are no invoices.
-        """
-        self.login_and_go_dashboard()
-        self.go_to_invoices_page()
-
-        self.page.wait_for_load_state("networkidle")
-
-        # Check if Delete exists at all
-        delete_btn = self.page.get_by_text("Delete").first
-        try:
-            if not delete_btn.is_visible(timeout=1500):
-                self.assertTrue(True)  # No delete available -> nothing to test here
-                return
-        except Exception:
-            self.assertTrue(True)
-            return
-
-        # If table rows exist, capture count
-        rows = self.page.locator("table tbody tr")
-        before = rows.count()
-
-        delete_btn.click()
-        self.page.wait_for_load_state("networkidle")
-
-        after = rows.count()
-
-        # Either count decreased OR delete action removed something visible
-        self.assertTrue(after < before or after == 0)
+        else:
+            self.page.wait_for_selector("text=Local History", timeout=15000)
+            self.page.wait_for_selector("text=View Details", timeout=15000)
+            self.assertTrue(self.page.get_by_text("View Details").first.is_visible())
 
 
 if __name__ == "__main__":

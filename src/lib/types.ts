@@ -3,6 +3,8 @@ export interface InvoiceMetadata {
   vendor: string;
   fileName: string;
   uploadedAt: string;
+  hash?: string;
+  size?: number;
 }
 
 export interface InvoiceData {

@@ -8,6 +8,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InvoiceMetadata } from '@/lib/types';
+import { computeFileHash } from '@/lib/utils';
 import { Upload, FileText, CloudUpload, CheckCircle, Eye, ArrowRight } from 'lucide-react';
 
 const API_BASE = '/api';
@@ -46,6 +47,25 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append('file', file);
 
+    // Pre-check duplicates by file hash before sending
+    try {
+      const hash = await computeFileHash(file);
+      const existing: InvoiceMetadata[] = JSON.parse(localStorage.getItem('invoices') || '[]');
+      const dup = existing.find(inv =>
+        inv.hash === hash ||
+        (!inv.hash && inv.fileName === file.name && (inv.size === undefined || inv.size === file.size))
+      );
+      if (dup) {
+        toast.error('Duplicate invoice detected. This file was already uploaded.');
+        setUploading(false);
+        return;
+      }
+      // Attach hash to metadata after extraction
+      (formData as any)._fileHash = hash; // marker kept locally
+    } catch (e) {
+      // If hashing fails, continue but rely on InvoiceId check later
+    }
+
     try {
       const response = await axios.post(`${API_BASE}/extract`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -61,11 +81,22 @@ export default function UploadPage() {
         vendor: data.data.VendorName || 'Unknown',
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
+        hash: (formData as any)._fileHash,
+        size: file.size,
       };
-      invoices.push(metadata);
-      localStorage.setItem('invoices', JSON.stringify(invoices));
-
-      toast.success('Invoice uploaded and processed successfully!');
+      // Prevent duplicate by id or hash before saving
+      const alreadyExists = invoices.some(inv =>
+        inv.id === metadata.id ||
+        (metadata.hash && inv.hash === metadata.hash) ||
+        (!metadata.hash && !inv.hash && inv.fileName === metadata.fileName && (inv.size === undefined || inv.size === metadata.size))
+      );
+      if (alreadyExists) {
+        toast.error('Duplicate invoice detected. Skipping save.');
+      } else {
+        invoices.push(metadata);
+        localStorage.setItem('invoices', JSON.stringify(invoices));
+        toast.success('Invoice uploaded and processed successfully!');
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Upload failed');
     } finally {
