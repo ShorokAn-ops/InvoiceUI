@@ -9,6 +9,7 @@ from test.pages.upload_page import UploadPage
 from test.pages.invoices_page import InvoicesPage
 
 
+
 class TestInvoiceFlowUI(unittest.TestCase):
     BASE_URL = "http://localhost:3000"
     STORAGE_STATE_PATH = Path("test/.auth/state.json")
