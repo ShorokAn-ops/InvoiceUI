@@ -11,7 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { InvoiceData } from '@/lib/types';
 
-const API_BASE = '/api';
+// Prefer env-configured base to avoid conflicts with local Next.js routes
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/backend';
 
 export default function InvoiceDetailsPage() {
   const { id } = useParams();

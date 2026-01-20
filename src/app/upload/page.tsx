@@ -11,7 +11,8 @@ import { InvoiceMetadata } from '@/lib/types';
 import { computeFileHash } from '@/lib/utils';
 import { Upload, FileText, CloudUpload, CheckCircle, Eye, ArrowRight } from 'lucide-react';
 
-const API_BASE = '/api';
+// Prefer env-configured base to avoid conflicts with local Next.js routes
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/backend';
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);

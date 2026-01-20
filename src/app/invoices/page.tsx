@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { InvoiceMetadata, InvoiceData } from '@/lib/types';
 import { Trash2 } from 'lucide-react';
 
-const API_BASE = '/api';
+// Prefer env-configured base to avoid conflicts with local Next.js routes
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/backend';
 
 export default function InvoicesPage() {
   const [localInvoices, setLocalInvoices] = useState<InvoiceMetadata[]>([]);

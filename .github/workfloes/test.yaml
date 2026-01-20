@@ -1,0 +1,60 @@
+# .github/workflows/ui-testing.yaml
+name: Playwright UI Tests
+
+on:
+  pull_request:
+    branches:
+     - main
+
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to run tests on'
+        required: true
+        default: 'chrome'
+        type: choice
+        options:
+        - chrome
+        - firefox
+      resolution:
+        description: 'Screen resolution'
+        required: true
+        default: 'desktop'
+        type: choice
+        options:
+        - desktop
+        - tablet
+        - mobile  
+  
+
+jobs:
+  playwright-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1  # Fetch only the latest commit to speed up the checkout process
+        repository: your-username/InvParserUI  # Replace with your UI testing repo
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Install Playwright browsers
+      run: |
+        playwright install --with-deps
+        
+    - name: Run Playwright tests
+      env:
+        HEADLESS: true
+        APP_URL: https://untrusted-cythia-unpunctilious.ngrok-free.dev
+      run: |
+        pytest tests/ -v
