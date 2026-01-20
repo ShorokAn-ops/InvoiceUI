@@ -12,7 +12,7 @@ from test.pages.invoices_page import InvoicesPage
 class TestInvoiceFlowUI(unittest.TestCase):
     BASE_URL = "http://localhost:3000"
     STORAGE_STATE_PATH = Path("test/.auth/state.json")
-    SAMPLE_PDF = Path("invoices/invoice_Aaron_Bergman_36259.pdf")
+    SAMPLE_PDF = Path("test/invoices/invoice_Aaron_Bergman_36259.pdf")
 
     @classmethod
     def setUpClass(cls):
