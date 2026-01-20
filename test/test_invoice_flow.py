@@ -7,17 +7,19 @@ from test.pages.login_page import LoginPage
 from test.pages.dashboard_page import DashboardPage
 from test.pages.upload_page import UploadPage
 from test.pages.invoices_page import InvoicesPage
-
+from playwright.sync_api import sync_playwright
+import os
 
 class TestInvoiceFlowUI(unittest.TestCase):
     BASE_URL = "http://localhost:3000"
     STORAGE_STATE_PATH = Path("test/.auth/state.json")
     SAMPLE_PDF = Path("invoices/invoice_Aaron_Bergman_36259.pdf")
+    headless = os.getenv('HEADLESS', 'false').lower() == 'true'
 
     @classmethod
     def setUpClass(cls):
         cls.playwright = sync_playwright().start()
-        cls.browser = cls.playwright.chromium.launch(headless=False, slow_mo=300)
+        cls.browser = cls.playwright.chromium.launch(headless=True, slow_mo=300)
         cls._ensure_storage_state()
 
     @classmethod
