@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { InvoiceData } from '@/lib/types';
 
-// Prefer env-configured base to avoid conflicts with local Next.js routes
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/backend';
+// Use /api to reach Next.js API routes
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function InvoiceDetailsPage() {
   const { id } = useParams();
@@ -34,6 +34,16 @@ export default function InvoiceDetailsPage() {
 
   const fetchInvoice = async (invoiceId: string) => {
     try {
+      // First, try to get from localStorage
+      const invoiceData = JSON.parse(localStorage.getItem('invoiceData') || '{}');
+      if (invoiceData[invoiceId]) {
+        setInvoice(invoiceData[invoiceId]);
+        setEditedData(invoiceData[invoiceId]);
+        setLoading(false);
+        return;
+      }
+      
+      // If not in localStorage, fetch from API
       const response = await axios.get(`${API_BASE}/invoice/${invoiceId}`);
       setInvoice(response.data);
       setEditedData(response.data);
@@ -45,10 +55,15 @@ export default function InvoiceDetailsPage() {
   };
 
   const handleSave = () => {
-    // UI only save
-    setInvoice({ ...invoice, ...editedData } as InvoiceData);
+    // Save to localStorage
+    const updatedInvoice = { ...invoice, ...editedData } as InvoiceData;
+    const invoiceData = JSON.parse(localStorage.getItem('invoiceData') || '{}');
+    invoiceData[updatedInvoice.InvoiceId] = updatedInvoice;
+    localStorage.setItem('invoiceData', JSON.stringify(invoiceData));
+    
+    setInvoice(updatedInvoice);
     setEditing(false);
-    toast.success('Changes saved locally');
+    toast.success('Changes saved successfully');
   };
 
   const handleDownloadJSON = () => {
