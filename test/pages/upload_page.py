@@ -1,5 +1,7 @@
 from pathlib import Path
 
+
+
 class UploadPage:
     def __init__(self, page, base_url: str):
         self.page = page
