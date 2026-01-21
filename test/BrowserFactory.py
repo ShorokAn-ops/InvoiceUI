@@ -1,8 +1,7 @@
 import os
 from playwright.sync_api import sync_playwright, Browser, Page
 
-
-
+# Factory class to create browser instances based on environment variables
 class BrowserFactory:
     def __init__(self):
         self.browser_type = os.getenv('BROWSER', 'chrome')
