@@ -26,6 +26,9 @@ jobs:
           playwright install --with-deps chromium
 
       - name: Run tests with pytest
+        env:
+          HEADLESS: "true"
+          APP_URL: "http://localhost:3000"
         run: |
           pytest test/ -v --tb=short
 
