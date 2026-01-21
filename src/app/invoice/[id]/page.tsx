@@ -14,6 +14,8 @@ import { InvoiceData } from '@/lib/types';
 // Prefer env-configured base to avoid conflicts with local Next.js routes
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/backend';
 
+
+
 export default function InvoiceDetailsPage() {
   const { id } = useParams();
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
