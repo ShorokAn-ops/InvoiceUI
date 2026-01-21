@@ -68,35 +68,38 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12 animate-fade-in-up">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-4">
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl shadow-2xl mb-6">
+            <FileText className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
             Welcome to InvoiceAI
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Streamline your invoice processing with AI-powered extraction and intelligent management
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {stats.map((stat, index) => (
-            <Card key={stat.title} className={`card-hover animate-fade-in-up gradient-bg border-0 shadow-lg`} style={{animationDelay: `${index * 0.1}s`}}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card key={stat.title} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <CardTitle className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
                   {stat.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 text-gradient-to-br ${stat.color} bg-clip-text`} />
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
+                  <stat.icon className="h-6 w-6 text-white" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                <div className={`text-5xl font-extrabold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-2`}>
                   {stat.value}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-gray-500">
                   {stat.title === 'Total Invoices' && '+12% from last month'}
                   {stat.title === 'Recent Uploads' && 'Last 5 uploads'}
                   {stat.title === 'Unique Vendors' && 'Active suppliers'}
@@ -107,19 +110,20 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="mb-8 card-hover gradient-bg border-0 shadow-lg animate-fade-in-up">
+        <Card className="mb-16 bg-white/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              <span>Quick Actions</span>
+            <CardTitle className="flex items-center space-x-3 text-xl">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold">Quick Actions</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={() => router.push('/upload')}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                size="lg"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-14 text-base font-semibold"
               >
                 <Upload className="w-5 h-5 mr-2" />
                 Upload New Invoice
@@ -128,8 +132,7 @@ export default function DashboardPage() {
               <Button
                 onClick={() => router.push('/invoices')}
                 variant="outline"
-                className="flex-1 border-2 hover:bg-white/10 transition-all duration-300 hover:scale-105"
-                size="lg"
+                className="flex-1 border-2 border-gray-300 hover:border-purple-600 hover:bg-purple-50 transition-all duration-300 hover:-translate-y-1 h-14 text-base font-semibold"
               >
                 <List className="w-5 h-5 mr-2" />
                 View All Invoices
@@ -139,43 +142,46 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Uploads */}
-        <Card className="card-hover gradient-bg border-0 shadow-lg animate-fade-in-up">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-purple-600" />
-              <span>Recent Uploads</span>
+            <CardTitle className="flex items-center space-x-3 text-xl">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold">Recent Uploads</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {recentInvoices.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground text-lg">No invoices uploaded yet</p>
-                <p className="text-sm text-muted-foreground mt-2">Start by uploading your first invoice!</p>
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl mb-6">
+                  <FileText className="w-12 h-12 text-gray-400" />
+                </div>
+                <p className="text-gray-600 text-xl font-semibold mb-2">No invoices uploaded yet</p>
+                <p className="text-sm text-gray-500">Start by uploading your first invoice!</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {recentInvoices.map((invoice, index) => (
                   <div
                     key={`${invoice.id}-${index}`}
-                    className="flex items-center justify-between p-4 bg-white/50 rounded-lg hover:bg-white/70 transition-all duration-200 animate-slide-in"
-                    style={{animationDelay: `${index * 0.1}s`}}
+                    className="flex items-center justify-between p-5 bg-gradient-to-r from-white to-gray-50 rounded-xl hover:shadow-lg transition-all duration-200 border border-gray-100"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-white" />
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <FileText className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{invoice.fileName}</p>
-                        <p className="text-sm text-muted-foreground">{invoice.vendor}</p>
+                        <p className="font-semibold text-gray-800 text-base">{invoice.fileName}</p>
+                        <p className="text-sm text-gray-500 font-medium">{invoice.vendor}</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600 font-medium">
                           {new Date(invoice.uploadedAt).toLocaleDateString()}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500">
                           {new Date(invoice.uploadedAt).toLocaleTimeString()}
                         </p>
                       </div>
@@ -183,9 +189,9 @@ export default function DashboardPage() {
                         onClick={() => handleDeleteInvoice(invoice.id)}
                         variant="ghost"
                         size="sm"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-3 rounded-lg transition-all"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </Button>
                     </div>
                   </div>

@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { InvoiceMetadata, InvoiceData } from '@/lib/types';
 import { Trash2 } from 'lucide-react';
 
-const API_BASE = '/api';
+// Use /api to reach Next.js API routes
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function InvoicesPage() {
   const [localInvoices, setLocalInvoices] = useState<InvoiceMetadata[]>([]);
@@ -47,8 +48,13 @@ export default function InvoicesPage() {
   const handleDeleteInvoice = (invoiceId: string) => {
     if (window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
       const invoices: InvoiceMetadata[] = JSON.parse(localStorage.getItem('invoices') || '[]');
+      const invoiceData = JSON.parse(localStorage.getItem('invoiceData') || '{}');
+      
       const updatedInvoices = invoices.filter(inv => inv.id !== invoiceId);
+      delete invoiceData[invoiceId];
+      
       localStorage.setItem('invoices', JSON.stringify(updatedInvoices));
+      localStorage.setItem('invoiceData', JSON.stringify(invoiceData));
       setLocalInvoices(updatedInvoices);
       toast.success('Invoice deleted successfully');
     }

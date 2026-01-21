@@ -1,5 +1,7 @@
 from pathlib import Path
 
+
+
 class UploadPage:
     def __init__(self, page, base_url: str):
         self.page = page
@@ -29,6 +31,9 @@ class UploadPage:
         btn.wait_for(state="visible", timeout=15000)
         btn.click()
 
-        self.page.wait_for_load_state("networkidle")
-        self.page.wait_for_timeout(1000)  # small buffer like you had
+        # Wait for the upload button to not be in uploading state
+        self.page.wait_for_load_state("networkidle", timeout=30000)
+        
+        # Give more time for backend processing and localStorage update
+        self.page.wait_for_timeout(2000)
         return self
