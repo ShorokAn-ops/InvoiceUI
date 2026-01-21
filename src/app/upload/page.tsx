@@ -75,8 +75,10 @@ export default function UploadPage() {
       const data = response.data;
       setExtractedData(data);
 
-      // Save to localStorage
+      // Save to localStorage - both metadata and full invoice data
       const invoices: InvoiceMetadata[] = JSON.parse(localStorage.getItem('invoices') || '[]');
+      const invoiceData = JSON.parse(localStorage.getItem('invoiceData') || '{}');
+      
       const metadata: InvoiceMetadata = {
         id: data.data.InvoiceId || `inv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         vendor: data.data.VendorName || 'Unknown',
@@ -85,17 +87,21 @@ export default function UploadPage() {
         hash: (formData as any)._fileHash,
         size: file.size,
       };
+      
       // Prevent duplicate by id or hash before saving
       const alreadyExists = invoices.some(inv =>
         inv.id === metadata.id ||
         (metadata.hash && inv.hash === metadata.hash) ||
         (!metadata.hash && !inv.hash && inv.fileName === metadata.fileName && (inv.size === undefined || inv.size === metadata.size))
       );
+      
       if (alreadyExists) {
         toast.error('Duplicate invoice detected. Skipping save.');
       } else {
         invoices.push(metadata);
+        invoiceData[metadata.id] = data.data;
         localStorage.setItem('invoices', JSON.stringify(invoices));
+        localStorage.setItem('invoiceData', JSON.stringify(invoiceData));
         toast.success('Invoice uploaded and processed successfully!');
       }
     } catch (error: any) {
