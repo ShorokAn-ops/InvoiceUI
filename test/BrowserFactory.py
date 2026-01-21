@@ -1,6 +1,8 @@
 import os
 from playwright.sync_api import sync_playwright, Browser, Page
 
+
+
 class BrowserFactory:
     def __init__(self):
         self.browser_type = os.getenv('BROWSER', 'chrome')
