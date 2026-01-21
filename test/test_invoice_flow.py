@@ -8,7 +8,8 @@ from test.pages.login_page import LoginPage
 from test.pages.dashboard_page import DashboardPage
 from test.pages.upload_page import UploadPage
 from test.pages.invoices_page import InvoicesPage
-
+from playwright.sync_api import sync_playwright
+import os
 
 class TestInvoiceFlowUI(unittest.TestCase):
     # --- Exercise requirements: env vars ---
